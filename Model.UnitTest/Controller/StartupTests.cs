@@ -1,51 +1,49 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Moq;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using GroupMeBot.Model;
-using GroupMeBot.Controller;
-using System;
-using Microsoft.AspNetCore.Hosting;
 
-namespace GroupMeBot.Tests
+namespace GroupMeBot.Tests;
+
+[TestClass]
+public class StartupTests
 {
-    [TestClass]
-    public class StartupTests
+    [TestMethod]
+    public void ServiceRegistration_ResolvesExpectedServices()
     {
-        //[TestMethod]
-        //public void Configure_RegistersExpectedServices()
-        //{
-        //    // Arrange
-        //    var mockFunctionsHostBuilder = new Mock<IFunctionsHostBuilder>();
-        //    var mockFunctionsHostBuilderContext = new Mock<FunctionsHostBuilderContext>();
-        //    var mockConfigurationRoot = new Mock<IConfigurationRoot>();
-        //    var configuration = new ConfigurationBuilder().Build(); // This is an empty configuration for testing purposes
-        //    mockFunctionsHostBuilder.Setup(builder => builder.GetContext()).Returns(mockFunctionsHostBuilderContext.Object);
-        //    mockFunctionsHostBuilderContext.Setup(context => context.Configuration).Returns(configuration);
-        //    var startup = new Startup();
+        // Arrange - build a service collection mirroring Program.cs registrations
+        var services = new ServiceCollection();
 
-        //    // Act
-        //    startup.Configure(mockFunctionsHostBuilder.Object);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GroupMePostUri"] = "https://api.groupme.com/v3/bots/post",
+                ["GiphyBotId"] = "test-giphy-id",
+                ["GroupMeBotId"] = "test-bot-id"
+            })
+            .Build();
 
-        //    // Assert
-        //    mockFunctionsHostBuilder.Verify(builder => builder.Services.AddHttpClient(), Times.Once);
-        //    mockFunctionsHostBuilder.Verify(builder => builder.Services.AddSingleton<IAnalysisBot, AnalysisBot>(), Times.Once);
-        //    mockFunctionsHostBuilder.Verify(builder => builder.Services.AddSingleton<IMessageBot, MessageBot>(), Times.Once);
-        //    mockFunctionsHostBuilder.Verify(builder => builder.Services.AddSingleton<IMessageIncoming, MessageIncoming>(), Times.Once);
-        //    mockFunctionsHostBuilder.Verify(builder => builder.Services.AddSingleton<IMessageOutgoing>(It.IsAny<Func<IServiceProvider, IMessageOutgoing>>()), Times.Once);
-        //}
+        services.AddLogging();
+        services.AddHttpClient();
+        services.AddSingleton<IAnalysisBot, AnalysisBot>();
+        services.AddSingleton<IMessageBot, MessageBot>();
+        services.AddSingleton<IGifBot, GifBot>();
+        services.AddSingleton<IMessageIncoming, MessageIncoming>();
+        services.AddSingleton<IMessageOutgoing, MessageOutgoing>();
+        services.AddSingleton<IBotPostConfiguration>(new BotPostConfiguration(
+            configuration["GroupMePostUri"], configuration["GroupMeBotId"]));
+        services.AddSingleton<IGiphyBotPostConfig>(new GiphyBotPostConfig(
+            configuration["GiphyBotId"]));
 
-        [TestMethod]
-        public void Startup_RegistersExpectedServices()
-        {
-            var webHost = Microsoft.AspNetCore.WebHost.CreateDefaultBuilder().UseStartup<Startup>().Build();
+        var serviceProvider = services.BuildServiceProvider();
 
-            Assert.IsNotNull(webHost);
-            Assert.IsNotNull(webHost.Services.GetRequiredService<IAnalysisBot>());
-            Assert.IsNotNull(webHost.Services.GetRequiredService<IMessageBot>());
-            Assert.IsNotNull(webHost.Services.GetRequiredService<IMessageIncoming>());
-            Assert.IsNotNull(webHost.Services.GetRequiredService<IMessageOutgoing>());
-        }
+        // Assert - all services resolve without errors
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IAnalysisBot>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IMessageBot>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IGifBot>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IMessageIncoming>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IMessageOutgoing>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IBotPostConfiguration>());
+        Assert.IsNotNull(serviceProvider.GetRequiredService<IGiphyBotPostConfig>());
     }
 }

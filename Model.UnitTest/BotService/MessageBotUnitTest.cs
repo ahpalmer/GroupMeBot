@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using GroupMeBot.Model;
 using System.Text.RegularExpressions;
 using System.Net;
@@ -17,11 +17,11 @@ public class MessageBotUnitTest
     {
         //Arrange
         MessageItem messageItem = new MessageItem("Bot message response");
-        var mockLogger = new Mock<ILogger>();
+        var mockLogger = new Mock<ILogger<MessageBot>>();
         var mockMessageOutgoing = new Mock<IMessageOutgoing>();
-        var mockResponseFilePaths = new Mock<ResponseFilePaths>();
+        var mockBotPostConfig = new Mock<IBotPostConfiguration>();
 
-        var MessageBot = new MessageBot(mockMessageOutgoing.Object, mockLogger.Object);
+        var messageBot = new MessageBot(mockMessageOutgoing.Object, mockBotPostConfig.Object, mockLogger.Object);
 
         string[] anonymousResponses = new string[]
         {
@@ -31,9 +31,9 @@ public class MessageBotUnitTest
             "All signs point to no"
         };
 
-        string anonymous = MessageBot.RetrieveRandomResponse("Andrew");
+        string response = messageBot.RetrieveRandomResponse("");
 
-        Assert.AreEqual(true, anonymousResponses.Contains(anonymous));
+        Assert.IsTrue(anonymousResponses.Contains(response));
     }
 
     [TestMethod]
@@ -41,13 +41,13 @@ public class MessageBotUnitTest
     {
         //Arrange
         MessageItem messageItem = new MessageItem("Bot message response");
-        var mockLogger = new Mock<ILogger>();
+        var mockLogger = new Mock<ILogger<MessageBot>>();
         var mockMessageOutgoing = new Mock<IMessageOutgoing>();
-        var mockResponseFilePaths = new Mock<ResponseFilePaths>();
+        var mockBotPostConfig = new Mock<IBotPostConfiguration>();
 
-        var MessageBot = new MessageBot(mockMessageOutgoing.Object, mockLogger.Object);
+        var messageBot = new MessageBot(mockMessageOutgoing.Object, mockBotPostConfig.Object, mockLogger.Object);
 
-        string[] anonymousResponses = new string[]
+        string[] andrewResponses = new string[]
         {
             "I agree completely!",
             "You are as correct as you are handsome",
@@ -61,49 +61,52 @@ public class MessageBotUnitTest
             "You are brave and courageous."
         };
 
-        string anonymous = MessageBot.RetrieveRandomResponse("Andrew");
+        string response = messageBot.RetrieveRandomResponse("Andrew");
 
-        Assert.AreEqual(true, anonymousResponses.Contains(anonymous));
+        Assert.IsTrue(andrewResponses.Contains(response));
     }
 
     [TestMethod]
-    public void HandleIncomingMessage_GoodInput_ReturnHttpOk()
+    public async Task HandleIncomingMessage_NullText_ReturnHttpBadRequest()
     {
         //Arrange
-        MessageItem messageItem = new MessageItem("Bot message response");
-        var mockLogger = new Mock<ILogger>();
+        MessageItem messageItem = new MessageItem();
+        messageItem.Text = null;
+        var mockLogger = new Mock<ILogger<MessageBot>>();
         var mockMessageOutgoing = new Mock<IMessageOutgoing>();
-        var mockResponseFilePaths = new Mock<ResponseFilePaths>();
+        var mockBotPostConfig = new Mock<IBotPostConfiguration>();
 
-        mockMessageOutgoing.Setup(_ => _.PostAsync("Received Message Response Request", "a4165ae5f7ad5ab682e2c3dd52")).ReturnsAsync(HttpStatusCode.OK);
-
-        var MessageBot = new MessageBot(mockMessageOutgoing.Object, mockLogger.Object);
-
+        var messageBot = new MessageBot(mockMessageOutgoing.Object, mockBotPostConfig.Object, mockLogger.Object);
 
         //Act
-        HttpStatusCode result = MessageBot.HandleIncomingTextAsync(messageItem).Result;
-
-        //Assert
-        Assert.AreEqual(HttpStatusCode.Accepted, result);
-    }
-
-    [TestMethod]
-    public void HandleIncomingMessage_BadInput_ReturnHttpBadRequest()
-    {
-        //Arrange
-        MessageItem messageItem = new MessageItem("Test message");
-        var mockLogger = new Mock<ILogger>();
-        var mockMessageOutgoing = new Mock<IMessageOutgoing>();
-        var mockResponseFilePaths = new Mock<ResponseFilePaths>();
-
-        mockMessageOutgoing.Setup(_ => _.PostAsync("Received Message Response Request", "a4165ae5f7ad5ab682e2c3dd52")).ReturnsAsync(HttpStatusCode.OK);
-
-        var MessageBot = new MessageBot(mockMessageOutgoing.Object, mockLogger.Object);
-
-        //Act
-        HttpStatusCode result = MessageBot.HandleIncomingTextAsync(messageItem).Result;
+        HttpStatusCode result = await messageBot.HandleIncomingTextAsync(messageItem);
 
         //Assert
         Assert.AreEqual(HttpStatusCode.BadRequest, result);
+    }
+
+    [TestMethod]
+    public async Task HandleIncomingMessage_ValidText_ReturnsStatusCode()
+    {
+        //Arrange
+        MessageItem messageItem = new MessageItem("Bot message response");
+        messageItem.UserId = "unknown-user";
+        var mockLogger = new Mock<ILogger<MessageBot>>();
+        var mockMessageOutgoing = new Mock<IMessageOutgoing>();
+        var mockBotPostConfig = new Mock<IBotPostConfiguration>();
+        mockBotPostConfig.Setup(c => c.BotId).Returns("test-bot-id");
+
+        mockMessageOutgoing
+            .Setup(_ => _.PostAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(HttpStatusCode.OK);
+
+        var messageBot = new MessageBot(mockMessageOutgoing.Object, mockBotPostConfig.Object, mockLogger.Object);
+
+        //Act
+        HttpStatusCode result = await messageBot.HandleIncomingTextAsync(messageItem);
+
+        //Assert
+        Assert.AreEqual(HttpStatusCode.OK, result);
+        mockMessageOutgoing.Verify(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"), Times.Once);
     }
 }
