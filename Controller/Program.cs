@@ -2,6 +2,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Azure.Functions.Worker.OpenTelemetry;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using GroupMeBot.Model;
 
 var host = new HostBuilder()
@@ -30,8 +32,9 @@ var host = new HostBuilder()
         services.AddSingleton<IBotPostConfiguration>(new BotPostConfiguration(botPostUri, groupMeBotId));
         services.AddSingleton<IGiphyBotPostConfig>(new GiphyBotPostConfig(giphyBotId));
 
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
+        services.AddOpenTelemetry()
+            .UseFunctionsWorkerDefaults()
+            .UseAzureMonitorExporter();
     })
     .Build();
 
