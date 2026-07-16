@@ -13,22 +13,26 @@ public class MessageIncoming : IMessageIncoming
     private IMessageBot _messageBot;
     private IAnalysisBot _analysisBot;
     private IGifBot _gifBot;
+    private IAchievementBot _achievementBot;
     private IBotPostConfiguration _botPostConfiguration;
     private ILogger _logger;
 
     private static readonly Regex _botAnalysisRegex = new Regex(@"((?i)(\bbot\b.*\banalysis\b)|(\banalysis\b.*\bbot\b)(?-i))");
     private static readonly Regex _botMessageRegex = new Regex(@"((?i)(\bbot\b.*\bmessage\b)|(\bmessage\b.*\bbot\b)(?-i))");
+    private static readonly Regex _botAchievementRegex = new Regex(@"(?i)\bbot\b.*\bachievement\b.*\bpost\b(?-i)");
 
     public MessageIncoming(
-        IMessageBot messageBot, 
-        IAnalysisBot analysisBot, 
+        IMessageBot messageBot,
+        IAnalysisBot analysisBot,
         IGifBot gifBot,
+        IAchievementBot achievementBot,
         IBotPostConfiguration botPostConfiguration,
         ILogger<MessageIncoming> logger)
     {
         this._messageBot = messageBot;
         this._analysisBot = analysisBot;
         this._gifBot = gifBot;
+        this._achievementBot = achievementBot;
         this._botPostConfiguration = botPostConfiguration;
         this._logger = logger;
     }
@@ -80,6 +84,26 @@ public class MessageIncoming : IMessageIncoming
             }
 
             _logger.LogInformation($"Parse Incoming Request-attempting regex match");
+
+            // Achievement bot - manual trigger ("bot achievement post")
+            Match achievementRegex = _botAchievementRegex.Match(message.Text);
+            if (achievementRegex.Success)
+            {
+                _logger.LogInformation("Parse Incoming Request-achievement manual trigger");
+                var achievementStatus = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
+                return achievementStatus == HttpStatusCode.OK
+                    ? new OkObjectResult(achievementStatus)
+                    : new BadRequestObjectResult(achievementStatus);
+            }
+
+            // Achievement bot - random trigger (1/50 chance)
+            if (Random.Shared.Next(50) == 0)
+            {
+                _logger.LogInformation("Parse Incoming Request-achievement random trigger fired");
+                var achievementStatus = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: false);
+                _logger.LogInformation("Parse Incoming Request-achievement random trigger result: {Status}", achievementStatus);
+                // Don't return - let normal command processing continue
+            }
 
             if (message.Text.StartsWith("Gif:") || message.Text.StartsWith("gif:") || message.Text.StartsWith("GIF:"))
             {

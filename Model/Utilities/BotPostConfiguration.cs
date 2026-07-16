@@ -9,10 +9,12 @@ public class BotPostConfiguration : IBotPostConfiguration
 {
     public string BotPostUrl { get; set; }
     public string BotId { get; set; }
+    public string GroupMeAccessToken { get; set; }
 
-    public BotPostConfiguration(string botPostUrl, string botId)
+    public BotPostConfiguration(string botPostUrl, string botId, string groupMeAccessToken)
     {
         BotPostUrl = botPostUrl;
         BotId = botId;
+        GroupMeAccessToken = groupMeAccessToken;
     }
 }

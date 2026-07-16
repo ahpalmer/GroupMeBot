@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using GroupMeBot.Model;
+using GroupMeBot.Infrastructure.DependencyInjection;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -21,16 +22,21 @@ var host = new HostBuilder()
         var botPostUri = configuration["GroupMePostUri"];
         var giphyBotId = configuration["GiphyBotId"];
         var groupMeBotId = configuration["GroupMeBotId"];
+        var groupMeAccessToken = configuration["GroupMeAccessToken"];
 
         services.AddHttpClient();
 
         services.AddSingleton<IAnalysisBot, AnalysisBot>();
         services.AddSingleton<IMessageBot, MessageBot>();
         services.AddSingleton<IGifBot, GifBot>();
+        services.AddSingleton<IAchievementBot, AchievementBot>();
+        services.AddSingleton<IGroupMeMessageHistory, GroupMeMessageHistory>();
         services.AddSingleton<IMessageIncoming, MessageIncoming>();
         services.AddSingleton<IMessageOutgoing, MessageOutgoing>();
-        services.AddSingleton<IBotPostConfiguration>(new BotPostConfiguration(botPostUri, groupMeBotId));
+        services.AddSingleton<IBotPostConfiguration>(new BotPostConfiguration(botPostUri, groupMeBotId, groupMeAccessToken));
         services.AddSingleton<IGiphyBotPostConfig>(new GiphyBotPostConfig(giphyBotId));
+
+        services.AddAnthropicAiClient(configuration);
 
         services.AddOpenTelemetry()
             .UseFunctionsWorkerDefaults()
