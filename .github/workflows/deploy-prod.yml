@@ -1,22 +1,22 @@
-name: Deploy to PPE
+name: Deploy to Production
 
 on:
   push:
     branches:
-      - ppe
+      - main
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  AZURE_FUNCTIONAPP_NAME: GroupMeBot-PPE
-  DOTNET_VERSION: '10.0.x'   # adjust if your project targets a different version
+  AZURE_FUNCTIONAPP_NAME: GroupMeBot-Prod
+  DOTNET_VERSION: '10.0.x'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: ppe
+    environment: production
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7.0.0

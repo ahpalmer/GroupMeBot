@@ -121,6 +121,10 @@ public class MessageIncoming : IMessageIncoming
                     _logger.LogInformation($"Parse Incoming Request-returning BadRequestObjectResult because HttpStatusCode BadRequest");
                     return new BadRequestObjectResult(status);
                 }
+                else
+                {
+                    _logger.LogInformation($"HttpStatusCode was neither OK nor BadRequest: {status}");
+                }
             }
 
             _logger.LogInformation($"Parse Incoming Request-final log, didn't trip any if statements, return OkObjectResult");
