@@ -1,0 +1,53 @@
+name: Deploy to PPE
+
+on:
+  push:
+    branches:
+      - ppe
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_FUNCTIONAPP_NAME: GroupMeBot-PPE
+  DOTNET_VERSION: '10.0.x'   # adjust if your project targets a different version
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ppe
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7.0.0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish Controller --configuration Release --no-restore --output ./publish
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          audience: api://AzureADTokenExchange
+
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1.5.6
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: ./publish

@@ -61,7 +61,6 @@ public class MessageBot : IMessageBot
 
             _log.LogInformation($"MessageBot-Response for user: {user} retrieved: {response}");
 
-            _log.LogInformation($"MessageBot-{_messageOutgoing}");
             return await _messageOutgoing.PostAsync($"{response}", _botPostConfiguration.BotId);
         }
         catch(Exception ex)
