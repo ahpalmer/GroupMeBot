@@ -27,13 +27,22 @@ The bot ignores its own messages to avoid infinite loops.
 
 ## Configuration
 
-The following settings are required and can be provided via `appsettings.json`, user secrets, or environment variables:
+The following settings are required. Store secrets in user secrets for local development
+or environment variables/application settings in deployed environments; do not commit them
+to `appsettings.json`.
 
 | Key | Description |
 |-----|-------------|
 | `GroupMePostUri` | GroupMe bot post API endpoint (e.g. `https://api.groupme.com/v3/bots/post`) |
 | `GroupMeBotId` | Your GroupMe bot ID |
+| `GroupMeAccessToken` | GroupMe access token used to retrieve recent conversation history |
 | `GiphyBotId` | Your Giphy API key |
+| `Anthropic:ApiKey` | Anthropic API key used to generate achievements (`Anthropic__ApiKey` as an environment variable) |
+
+For Azure Key Vault references, use `Anthropic-ApiKey` as the Key Vault secret name
+because Key Vault secret names cannot contain underscores. Create a Function App application
+setting named `Anthropic__ApiKey` whose value references that Key Vault secret. The .NET
+environment-variable provider maps the double underscore to `Anthropic:ApiKey`.
 
 ### Setting up user secrets (local development)
 
@@ -41,7 +50,9 @@ The following settings are required and can be provided via `appsettings.json`, 
 cd Controller
 dotnet user-secrets set "GroupMePostUri" "https://api.groupme.com/v3/bots/post"
 dotnet user-secrets set "GroupMeBotId" "your-bot-id"
+dotnet user-secrets set "GroupMeAccessToken" "your-groupme-access-token"
 dotnet user-secrets set "GiphyBotId" "your-giphy-api-key"
+dotnet user-secrets set "Anthropic:ApiKey" "your-anthropic-api-key"
 ```
 
 ## Building and Running

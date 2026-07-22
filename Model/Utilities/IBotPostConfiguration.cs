@@ -10,4 +10,5 @@ public interface IBotPostConfiguration
 {
     string BotPostUrl { get; set; }
     string BotId { get; set; }
+    string GroupMeAccessToken { get; set; }
 }

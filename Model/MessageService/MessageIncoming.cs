@@ -13,22 +13,26 @@ public class MessageIncoming : IMessageIncoming
     private IMessageBot _messageBot;
     private IAnalysisBot _analysisBot;
     private IGifBot _gifBot;
+    private IAchievementBot _achievementBot;
     private IBotPostConfiguration _botPostConfiguration;
     private ILogger _logger;
 
     private static readonly Regex _botAnalysisRegex = new Regex(@"((?i)(\bbot\b.*\banalysis\b)|(\banalysis\b.*\bbot\b)(?-i))");
     private static readonly Regex _botMessageRegex = new Regex(@"((?i)(\bbot\b.*\bmessage\b)|(\bmessage\b.*\bbot\b)(?-i))");
+    private static readonly Regex _botAchievementRegex = new Regex(@"((?i)(\bbot\b.*\bachievement\b)|(\bachievement\b.*\bbot\b)(?-i))");
 
     public MessageIncoming(
-        IMessageBot messageBot, 
-        IAnalysisBot analysisBot, 
+        IMessageBot messageBot,
+        IAnalysisBot analysisBot,
         IGifBot gifBot,
+        IAchievementBot achievementBot,
         IBotPostConfiguration botPostConfiguration,
         ILogger<MessageIncoming> logger)
     {
         this._messageBot = messageBot;
         this._analysisBot = analysisBot;
         this._gifBot = gifBot;
+        this._achievementBot = achievementBot;
         this._botPostConfiguration = botPostConfiguration;
         this._logger = logger;
     }
@@ -59,19 +63,10 @@ public class MessageIncoming : IMessageIncoming
                 _logger.LogInformation($"Parse Incoming Request-Message text content: {message.Text}");
             }
 
-            // Todo: I'm not sure if this should be UserId or SenderId.  Guess we'll find out!
-            // Delete the wrong one once you've figured it out
-            if (message.UserId == _botPostConfiguration.BotId)
+            if (string.Equals(message.SystemSenderType, "bot", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation($"CRITICAL INFORMATION: message.UserId == _botId");
-                _logger.LogInformation($"Parse Incoming Request-returning OKObjectResult No response required, message is from bot");
-                return new OkObjectResult("No response required, message is from bot");
-            }
-            if (message.SystemSenderId == _botPostConfiguration.BotId)
-            {
-                _logger.LogInformation($"CRITICAL INFORMATION: message.SystemSenderId == _botId");
-                _logger.LogInformation($"Parse Incoming Request-returning OKObjectResult No response required, message is from bot");
-                return new OkObjectResult("No response required, message is from bot");
+                _logger.LogInformation("Parse Incoming Request-returning OK because message sender_type is bot");
+                return new OkObjectResult("No response required, message is from a bot");
             }
             if (message.Text == null)
             {
@@ -80,6 +75,29 @@ public class MessageIncoming : IMessageIncoming
             }
 
             _logger.LogInformation($"Parse Incoming Request-attempting regex match");
+
+            // Achievement bot - manual trigger ("bot achievement post")
+            Match achievementRegex = _botAchievementRegex.Match(message.Text);
+            if (achievementRegex.Success)
+            {
+                _logger.LogInformation("Parse Incoming Request-achievement manual trigger");
+                var achievementStatus = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
+                _logger.LogInformation(
+                    "Parse Incoming Request-achievement manual trigger result: {Status}",
+                    achievementStatus);
+                return IsSuccessStatusCode(achievementStatus)
+                    ? new OkObjectResult(achievementStatus)
+                    : new BadRequestObjectResult(achievementStatus);
+            }
+
+            // Achievement bot - random trigger (1/50 chance)
+            if (Random.Shared.Next(50) == 0)
+            {
+                _logger.LogInformation("Parse Incoming Request-achievement random trigger fired");
+                var achievementStatus = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: false);
+                _logger.LogInformation("Parse Incoming Request-achievement random trigger result: {Status}", achievementStatus);
+                // Don't return - let normal command processing continue
+            }
 
             if (message.Text.StartsWith("Gif:") || message.Text.StartsWith("gif:") || message.Text.StartsWith("GIF:"))
             {
@@ -153,5 +171,11 @@ public class MessageIncoming : IMessageIncoming
         var headersDump = builder.ToString();
 
         return headersDump;
+    }
+
+    private static bool IsSuccessStatusCode(HttpStatusCode statusCode)
+    {
+        var numericStatusCode = (int)statusCode;
+        return numericStatusCode is >= 200 and <= 299;
     }
 }
