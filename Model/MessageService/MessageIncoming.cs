@@ -63,19 +63,10 @@ public class MessageIncoming : IMessageIncoming
                 _logger.LogInformation($"Parse Incoming Request-Message text content: {message.Text}");
             }
 
-            // Todo: I'm not sure if this should be UserId or SenderId.  Guess we'll find out!
-            // Delete the wrong one once you've figured it out
-            if (message.UserId == _botPostConfiguration.BotId)
+            if (string.Equals(message.SystemSenderType, "bot", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation($"CRITICAL INFORMATION: message.UserId == _botId");
-                _logger.LogInformation($"Parse Incoming Request-returning OKObjectResult No response required, message is from bot");
-                return new OkObjectResult("No response required, message is from bot");
-            }
-            if (message.SystemSenderId == _botPostConfiguration.BotId)
-            {
-                _logger.LogInformation($"CRITICAL INFORMATION: message.SystemSenderId == _botId");
-                _logger.LogInformation($"Parse Incoming Request-returning OKObjectResult No response required, message is from bot");
-                return new OkObjectResult("No response required, message is from bot");
+                _logger.LogInformation("Parse Incoming Request-returning OK because message sender_type is bot");
+                return new OkObjectResult("No response required, message is from a bot");
             }
             if (message.Text == null)
             {
