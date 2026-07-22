@@ -6,6 +6,8 @@ namespace GroupMeBot.Model;
 
 public class AchievementBot : IAchievementBot
 {
+    private const int RecentMessageLimit = 20;
+
     private readonly IMessageOutgoing _messageOutgoing;
     private readonly IBotPostConfiguration _botPostConfiguration;
     private readonly IAiCompletionClient _aiClient;
@@ -54,7 +56,9 @@ public class AchievementBot : IAchievementBot
         {
             _logger.LogInformation("AchievementBot triggered (manual: {IsManual})", isManualTrigger);
 
-            var recentMessages = await _messageHistory.GetRecentMessagesAsync(message.GroupId!);
+            var recentMessages = await _messageHistory.GetRecentMessagesAsync(
+                message.GroupId!,
+                RecentMessageLimit);
             var conversationContext = BuildConversationContext(recentMessages);
             var userPrompt = BuildUserPrompt(message, conversationContext, isManualTrigger);
 

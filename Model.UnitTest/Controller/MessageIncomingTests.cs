@@ -11,7 +11,9 @@ namespace GroupMeBot.Tests;
 public class MessageIncomingTests
 {
     [TestMethod]
-    public async Task ParseIncomingRequest_ManualAchievementAccepted_ReturnsOk()
+    [DataRow("bot achievement")]
+    [DataRow("achievement bot")]
+    public async Task ParseIncomingRequest_ManualAchievementAccepted_ReturnsOk(string triggerText)
     {
         var messageBot = new Mock<IMessageBot>();
         var analysisBot = new Mock<IAnalysisBot>();
@@ -32,9 +34,9 @@ public class MessageIncomingTests
             botConfiguration.Object,
             logger.Object);
 
-        const string payload = """
+        var payload = $$"""
             {
-              "text": "bot achievement post",
+              "text": "{{triggerText}}",
               "group_id": "89303421",
               "name": "Andrew",
               "sender_id": "4635437",

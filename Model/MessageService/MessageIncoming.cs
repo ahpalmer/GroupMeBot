@@ -19,7 +19,7 @@ public class MessageIncoming : IMessageIncoming
 
     private static readonly Regex _botAnalysisRegex = new Regex(@"((?i)(\bbot\b.*\banalysis\b)|(\banalysis\b.*\bbot\b)(?-i))");
     private static readonly Regex _botMessageRegex = new Regex(@"((?i)(\bbot\b.*\bmessage\b)|(\bmessage\b.*\bbot\b)(?-i))");
-    private static readonly Regex _botAchievementRegex = new Regex(@"(?i)\bbot\b.*\bachievement\b.*\bpost\b(?-i)");
+    private static readonly Regex _botAchievementRegex = new Regex(@"((?i)(\bbot\b.*\bachievement\b)|(\bachievement\b.*\bbot\b)(?-i))");
 
     public MessageIncoming(
         IMessageBot messageBot,

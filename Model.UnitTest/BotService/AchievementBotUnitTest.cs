@@ -166,4 +166,31 @@ public class AchievementBotUnitTest
         Assert.AreEqual(HttpStatusCode.BadRequest, result);
         _mockMessageOutgoing.Verify(m => m.PostAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
+
+    [TestMethod]
+    public async Task HandleIncomingText_MessageHistoryThrows_ReturnsBadRequestWithoutCallingAi()
+    {
+        var message = new MessageItem("test")
+        {
+            DisplayName = "Hayden",
+            GroupId = "test-group",
+            UserId = "84706251"
+        };
+
+        _mockMessageHistory
+            .Setup(h => h.GetRecentMessagesAsync("test-group", 20))
+            .ThrowsAsync(new HttpRequestException("GroupMe API error"));
+
+        var result = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: false);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, result);
+        _mockAiClient.Verify(
+            client => client.GetCompletionAsync(
+                It.IsAny<AiCompletionRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockMessageOutgoing.Verify(
+            outgoing => outgoing.PostAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
 }

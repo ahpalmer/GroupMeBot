@@ -1,36 +1,33 @@
-using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace GroupMeBot.Model;
 
-[DataContract]
 public class GroupMeHistoryMessage
 {
-    [DataMember(Name = "id")]
+    [JsonPropertyName("id")]
     public string? Id { get; set; }
 
-    [DataMember(Name = "name")]
+    [JsonPropertyName("name")]
     public string? Name { get; set; }
 
-    [DataMember(Name = "text")]
+    [JsonPropertyName("text")]
     public string? Text { get; set; }
 
-    [DataMember(Name = "user_id")]
+    [JsonPropertyName("user_id")]
     public string? UserId { get; set; }
 }
 
-[DataContract]
 public class GroupMeMessagesResponse
 {
-    [DataMember(Name = "count")]
+    [JsonPropertyName("count")]
     public int Count { get; set; }
 
-    [DataMember(Name = "messages")]
+    [JsonPropertyName("messages")]
     public List<GroupMeHistoryMessage>? Messages { get; set; }
 }
 
-[DataContract]
 public class GroupMeMessagesApiResponse
 {
-    [DataMember(Name = "response")]
+    [JsonPropertyName("response")]
     public GroupMeMessagesResponse? Response { get; set; }
 }
