@@ -19,10 +19,12 @@ var host = new HostBuilder()
     {
         var configuration = context.Configuration;
 
-        var botPostUri = configuration["GroupMePostUri"];
-        var giphyBotId = configuration["GiphyBotId"];
-        var groupMeBotId = configuration["GroupMeBotId"];
-        var groupMeAccessToken = configuration["GroupMeAccessToken"];
+        var botPostConfiguration = new BotPostConfiguration(
+            configuration.GetRequiredValue("GroupMePostUri"),
+            configuration.GetRequiredValue("GroupMeBotId"),
+            configuration.GetRequiredValue("GroupMeAccessToken"));
+        var giphyBotPostConfig = new GiphyBotPostConfig(
+            configuration.GetRequiredValue("GiphyBotId"));
 
         services.AddHttpClient();
 
@@ -33,8 +35,8 @@ var host = new HostBuilder()
         services.AddSingleton<IGroupMeMessageHistory, GroupMeMessageHistory>();
         services.AddSingleton<IMessageIncoming, MessageIncoming>();
         services.AddSingleton<IMessageOutgoing, MessageOutgoing>();
-        services.AddSingleton<IBotPostConfiguration>(new BotPostConfiguration(botPostUri, groupMeBotId, groupMeAccessToken));
-        services.AddSingleton<IGiphyBotPostConfig>(new GiphyBotPostConfig(giphyBotId));
+        services.AddSingleton<IBotPostConfiguration>(botPostConfiguration);
+        services.AddSingleton<IGiphyBotPostConfig>(giphyBotPostConfig);
 
         services.AddAnthropicAiClient(configuration);
 

@@ -20,7 +20,12 @@ public static class InfrastructureServiceCollectionExtensions
         this IServiceCollection services,
         Action<AnthropicOptions> configure)
     {
-        services.AddOptions<AnthropicOptions>().Configure(configure);
+        services.AddOptions<AnthropicOptions>()
+            .Configure(configure)
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.ApiKey),
+                "Anthropic:ApiKey is not configured.")
+            .ValidateOnStart();
         services.AddHttpClient<IAiCompletionClient, AnthropicCompletionClient>();
         return services;
     }
@@ -34,7 +39,12 @@ public static class InfrastructureServiceCollectionExtensions
         IConfiguration configuration,
         string sectionName = "Anthropic")
     {
-        services.AddOptions<AnthropicOptions>().Bind(configuration.GetSection(sectionName));
+        services.AddOptions<AnthropicOptions>()
+            .Bind(configuration.GetRequiredSection(sectionName))
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.ApiKey),
+                $"{sectionName}:ApiKey is not configured.")
+            .ValidateOnStart();
         services.AddHttpClient<IAiCompletionClient, AnthropicCompletionClient>();
         return services;
     }
