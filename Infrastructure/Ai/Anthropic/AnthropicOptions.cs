@@ -19,7 +19,7 @@ public sealed class AnthropicOptions
     /// <summary>
     /// Model id used when <see cref="AiCompletionRequest.Model"/> is not set.
     /// </summary>
-    public string DefaultModel { get; set; } = "claude-sonnet-4-5";
+    public string DefaultModel { get; set; } = "claude-sonnet-5";
 
     /// <summary>
     /// max_tokens used when <see cref="AiCompletionRequest.MaxOutputTokens"/> is not set.

@@ -39,6 +39,11 @@ to `appsettings.json`.
 | `GiphyBotId` | Your Giphy API key |
 | `Anthropic:ApiKey` | Anthropic API key used to generate achievements (`Anthropic__ApiKey` as an environment variable) |
 
+For Azure Key Vault references, use `Anthropic-ApiKey` as the Key Vault secret name
+because Key Vault secret names cannot contain underscores. Create a Function App application
+setting named `Anthropic__ApiKey` whose value references that Key Vault secret. The .NET
+environment-variable provider maps the double underscore to `Anthropic:ApiKey`.
+
 ### Setting up user secrets (local development)
 
 ```bash
