@@ -82,7 +82,10 @@ public class MessageIncoming : IMessageIncoming
             {
                 _logger.LogInformation("Parse Incoming Request-achievement manual trigger");
                 var achievementStatus = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
-                return achievementStatus == HttpStatusCode.OK
+                _logger.LogInformation(
+                    "Parse Incoming Request-achievement manual trigger result: {Status}",
+                    achievementStatus);
+                return IsSuccessStatusCode(achievementStatus)
                     ? new OkObjectResult(achievementStatus)
                     : new BadRequestObjectResult(achievementStatus);
             }
@@ -168,5 +171,11 @@ public class MessageIncoming : IMessageIncoming
         var headersDump = builder.ToString();
 
         return headersDump;
+    }
+
+    private static bool IsSuccessStatusCode(HttpStatusCode statusCode)
+    {
+        var numericStatusCode = (int)statusCode;
+        return numericStatusCode is >= 200 and <= 299;
     }
 }

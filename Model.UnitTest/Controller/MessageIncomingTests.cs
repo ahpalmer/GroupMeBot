@@ -11,6 +11,50 @@ namespace GroupMeBot.Tests;
 public class MessageIncomingTests
 {
     [TestMethod]
+    public async Task ParseIncomingRequest_ManualAchievementAccepted_ReturnsOk()
+    {
+        var messageBot = new Mock<IMessageBot>();
+        var analysisBot = new Mock<IAnalysisBot>();
+        var gifBot = new Mock<IGifBot>();
+        var achievementBot = new Mock<IAchievementBot>();
+        var botConfiguration = new Mock<IBotPostConfiguration>();
+        var logger = new Mock<ILogger<MessageIncoming>>();
+
+        achievementBot
+            .Setup(bot => bot.HandleIncomingTextAsync(It.IsAny<MessageItem>(), true))
+            .ReturnsAsync(System.Net.HttpStatusCode.Accepted);
+
+        var messageIncoming = new MessageIncoming(
+            messageBot.Object,
+            analysisBot.Object,
+            gifBot.Object,
+            achievementBot.Object,
+            botConfiguration.Object,
+            logger.Object);
+
+        const string payload = """
+            {
+              "text": "bot achievement post",
+              "group_id": "89303421",
+              "name": "Andrew",
+              "sender_id": "4635437",
+              "sender_type": "user",
+              "user_id": "4635437"
+            }
+            """;
+
+        var request = new DefaultHttpContext().Request;
+        request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+
+        var result = await messageIncoming.ParseIncomingRequestAsync(request);
+
+        Assert.IsInstanceOfType<OkObjectResult>(result);
+        achievementBot.Verify(
+            bot => bot.HandleIncomingTextAsync(It.IsAny<MessageItem>(), true),
+            Times.Once);
+    }
+
+    [TestMethod]
     public async Task ParseIncomingRequest_BotSender_DoesNotInvokeResponseBots()
     {
         var messageBot = new Mock<IMessageBot>();
