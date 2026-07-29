@@ -36,7 +36,7 @@ jobs:
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Publish
-        run: dotnet publish Controller --configuration Release --no-restore --output ./publish
+        run: dotnet publish Presentation --configuration Release --no-restore --output ./publish
 
       - name: Azure login (OIDC)
         uses: azure/login@v3.0.0

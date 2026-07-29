@@ -4,11 +4,12 @@ A serverless GroupMe chat bot built with Azure Functions (.NET 10, isolated work
 
 ## Architecture
 
-The solution is organized into three projects:
+The solution uses a clean architecture layout without a separate Domain layer for now:
 
-- **Controller** - Azure Functions HTTP trigger entry point. Receives webhook callbacks from GroupMe and delegates to the Model layer.
-- **Model** - Core business logic. Contains bot services, message parsing, entity models, and utilities.
-- **Model.UnitTest** - Unit tests using MSTest and Moq.
+- **Presentation** - Azure Functions HTTP trigger entry point and composition root. Receives webhook callbacks from GroupMe and delegates to the Application layer.
+- **Application** - Application logic. Contains bot services, message parsing, application models, and utilities.
+- **Infrastructure** - External service integrations and their dependency injection registration.
+- **Application.UnitTest** - Unit tests using MSTest and Moq.
 
 ## Bot Commands
 
@@ -47,7 +48,7 @@ environment-variable provider maps the double underscore to `Anthropic:ApiKey`.
 ### Setting up user secrets (local development)
 
 ```bash
-cd Controller
+cd Presentation
 dotnet user-secrets set "GroupMePostUri" "https://api.groupme.com/v3/bots/post"
 dotnet user-secrets set "GroupMeBotId" "your-bot-id"
 dotnet user-secrets set "GroupMeAccessToken" "your-groupme-access-token"
@@ -65,7 +66,7 @@ dotnet restore
 dotnet build
 
 # Run locally
-cd Controller
+cd Presentation
 func start
 
 # Run tests
@@ -76,12 +77,12 @@ dotnet test
 
 ```
 GroupMeBotPPE/
-├── Controller/
+├── Presentation/
 │   ├── BasicResponse.cs        # Azure Function HTTP trigger
 │   ├── Program.cs              # Application entry point and DI setup
 │   ├── appsettings.json        # App configuration
 │   └── host.json               # Azure Functions host configuration
-├── Model/
+├── Application/
 │   ├── BotService/
 │   │   ├── MessageBot.cs       # Canned text response bot
 │   │   ├── GifBot.cs           # Giphy search bot
@@ -96,10 +97,13 @@ GroupMeBotPPE/
 │       ├── BotPostConfiguration.cs
 │       ├── GiphyBotPostConfig.cs
 │       └── JsonSerializer.cs
-├── Model.UnitTest/
+├── Infrastructure/
+│   ├── Ai/                      # AI provider abstractions and clients
+│   └── DependencyInjection/     # Infrastructure service registration
+├── Application.UnitTest/
 │   ├── BotService/
 │   │   └── MessageBotUnitTest.cs
-│   └── Controller/
+│   └── Presentation/
 │       └── StartupTests.cs
 ├── GroupMeBot.sln
 ├── LICENSE
