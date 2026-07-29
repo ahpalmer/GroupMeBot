@@ -7,7 +7,7 @@ namespace GroupMeBot.Infrastructure.DependencyInjection;
 
 /// <summary>
 /// DI registration helpers for the Infrastructure layer. Keep registrations here so
-/// composition roots (e.g. the Controller's Program.cs) don't need to know about
+/// composition roots (e.g. the Presentation project's Program.cs) don't need to know about
 /// concrete provider classes.
 /// </summary>
 public static class InfrastructureServiceCollectionExtensions

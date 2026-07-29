@@ -3,18 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Model.UnitTest", "Model.UnitTest\Model.UnitTest.csproj", "{C40E8AA7-042C-4A7A-81BF-967A10ECB68E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Application.UnitTest", "Application.UnitTest\Application.UnitTest.csproj", "{C40E8AA7-042C-4A7A-81BF-967A10ECB68E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{226E7A9C-A34E-4986-A45A-4C907461D014} = {226E7A9C-A34E-4986-A45A-4C907461D014}
 		{6C148642-3F5C-410B-8309-06CAB917AA65} = {6C148642-3F5C-410B-8309-06CAB917AA65}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Controller", "Controller\Controller.csproj", "{226E7A9C-A34E-4986-A45A-4C907461D014}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Presentation", "Presentation\Presentation.csproj", "{226E7A9C-A34E-4986-A45A-4C907461D014}"
 	ProjectSection(ProjectDependencies) = postProject
 		{6C148642-3F5C-410B-8309-06CAB917AA65} = {6C148642-3F5C-410B-8309-06CAB917AA65}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Model", "Model\Model.csproj", "{6C148642-3F5C-410B-8309-06CAB917AA65}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Application", "Application\Application.csproj", "{6C148642-3F5C-410B-8309-06CAB917AA65}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{7B5F8D2A-3A4E-4B91-9C28-1D6E5F8A2B4C}"
 EndProject
