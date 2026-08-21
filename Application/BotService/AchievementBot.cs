@@ -12,6 +12,7 @@ public class AchievementBot : IAchievementBot
     private readonly IBotPostConfiguration _botPostConfiguration;
     private readonly IAiCompletionClient _aiClient;
     private readonly IGroupMeMessageHistory _messageHistory;
+    private readonly IAchievementImageQueue _imageQueue;
     private readonly ILogger<AchievementBot> _logger;
 
     private const string SystemPrompt = """
@@ -41,12 +42,14 @@ public class AchievementBot : IAchievementBot
         IBotPostConfiguration botPostConfiguration,
         IAiCompletionClient aiClient,
         IGroupMeMessageHistory messageHistory,
+        IAchievementImageQueue imageQueue,
         ILogger<AchievementBot> logger)
     {
         _messageOutgoing = messageOutgoing;
         _botPostConfiguration = botPostConfiguration;
         _aiClient = aiClient;
         _messageHistory = messageHistory;
+        _imageQueue = imageQueue;
         _logger = logger;
     }
 
@@ -73,7 +76,14 @@ public class AchievementBot : IAchievementBot
             var response = await _aiClient.GetCompletionAsync(request);
             _logger.LogInformation("AchievementBot AI response received, length: {Length}", response.Text.Length);
 
-            return await _messageOutgoing.PostAsync(response.Text, _botPostConfiguration.BotId);
+            var status = await _messageOutgoing.PostAsync(response.Text, _botPostConfiguration.BotId);
+
+            if (IsSuccessStatusCode(status))
+            {
+                await EnqueueImageAsync(message, response.Text);
+            }
+
+            return status;
         }
         catch (Exception ex)
         {
@@ -81,6 +91,33 @@ public class AchievementBot : IAchievementBot
             return HttpStatusCode.BadRequest;
         }
     }
+
+    /// <summary>
+    /// Hands the image off to a background worker. Image generation takes tens of
+    /// seconds, so it must not happen on the GroupMe webhook request path. A failure
+    /// to enqueue is logged and swallowed — the achievement text already posted.
+    /// </summary>
+    private async Task EnqueueImageAsync(MessageItem message, string achievementText)
+    {
+        try
+        {
+            await _imageQueue.EnqueueAsync(new AchievementImageRequest
+            {
+                GroupId = message.GroupId,
+                UserId = message.UserId,
+                DisplayName = message.DisplayName,
+                AchievementText = achievementText,
+                MessageId = message.unspecifiedId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AchievementBot failed to enqueue the achievement image");
+        }
+    }
+
+    private static bool IsSuccessStatusCode(HttpStatusCode statusCode) =>
+        (int)statusCode is >= 200 and <= 299;
 
     private static string BuildConversationContext(List<GroupMeHistoryMessage> messages)
     {

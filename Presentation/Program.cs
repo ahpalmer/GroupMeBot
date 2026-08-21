@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using GroupMeBot.Application;
@@ -32,13 +33,23 @@ var host = new HostBuilder()
         services.AddSingleton<IMessageBot, MessageBot>();
         services.AddSingleton<IGifBot, GifBot>();
         services.AddSingleton<IAchievementBot, AchievementBot>();
+        services.AddSingleton<IAchievementImageBot, AchievementImageBot>();
         services.AddSingleton<IGroupMeMessageHistory, GroupMeMessageHistory>();
+        services.AddSingleton<IGroupMeImageUploader, GroupMeImageUploader>();
         services.AddSingleton<IMessageIncoming, MessageIncoming>();
         services.AddSingleton<IMessageOutgoing, MessageOutgoing>();
         services.AddSingleton<IBotPostConfiguration>(botPostConfiguration);
         services.AddSingleton<IGiphyBotPostConfig>(giphyBotPostConfig);
 
+        services.AddSingleton<IAchievementImageQueue>(sp => new StorageAchievementImageQueue(
+            configuration.GetRequiredValue("AzureWebJobsStorage"),
+            sp.GetRequiredService<ILogger<StorageAchievementImageQueue>>()));
+
+        services.Configure<AchievementImageOptions>(configuration.GetSection("Achievement"));
+
         services.AddAnthropicAiClient(configuration);
+        services.AddGoogleAiImageClient(configuration);
+        services.AddBlobPersonPhotoStore(configuration);
 
         services.AddOpenTelemetry()
             .UseFunctionsWorkerDefaults()

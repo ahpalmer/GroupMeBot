@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace GroupMeBot.Application;
 
@@ -6,9 +6,15 @@ namespace GroupMeBot.Application;
 public class CreateBotPostRequest
 {
     public CreateBotPostRequest(string botId, string text)
+        : this(botId, text, null)
+    {
+    }
+
+    public CreateBotPostRequest(string botId, string text, Attachment[]? attachments)
     {
         BotId = botId;
         Text = text;
+        Attachments = attachments;
     }
 
     /// <summary>
@@ -24,9 +30,13 @@ public class CreateBotPostRequest
     public string Text { get; set; }
 
     /// <summary>
-    /// Gets or sets the attachments for the message
+    /// Gets or sets the attachments for the message. Null when the message is text-only.
     /// </summary>
-    //[DataMember(Name = "attachments")]
-    //public Attachment[] Attachments { get; set; }
-
+    /// <remarks>
+    /// This class is [DataContract], so Json.NET serializes in opt-in mode: a property
+    /// without [DataMember] is silently dropped from the wire payload. Any new field
+    /// here needs the attribute.
+    /// </remarks>
+    [DataMember(Name = "attachments", EmitDefaultValue = false)]
+    public Attachment[]? Attachments { get; set; }
 }

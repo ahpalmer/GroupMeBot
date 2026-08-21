@@ -13,6 +13,7 @@ public class AchievementBotUnitTest
     private Mock<IBotPostConfiguration> _mockBotPostConfig = null!;
     private Mock<IAiCompletionClient> _mockAiClient = null!;
     private Mock<IGroupMeMessageHistory> _mockMessageHistory = null!;
+    private Mock<IAchievementImageQueue> _mockImageQueue = null!;
     private Mock<ILogger<AchievementBot>> _mockLogger = null!;
     private AchievementBot _achievementBot = null!;
 
@@ -23,6 +24,7 @@ public class AchievementBotUnitTest
         _mockBotPostConfig = new Mock<IBotPostConfiguration>();
         _mockAiClient = new Mock<IAiCompletionClient>();
         _mockMessageHistory = new Mock<IGroupMeMessageHistory>();
+        _mockImageQueue = new Mock<IAchievementImageQueue>();
         _mockLogger = new Mock<ILogger<AchievementBot>>();
 
         _mockBotPostConfig.Setup(c => c.BotId).Returns("test-bot-id");
@@ -32,6 +34,7 @@ public class AchievementBotUnitTest
             _mockBotPostConfig.Object,
             _mockAiClient.Object,
             _mockMessageHistory.Object,
+            _mockImageQueue.Object,
             _mockLogger.Object);
     }
 
@@ -56,7 +59,7 @@ public class AchievementBotUnitTest
 
         _mockAiClient
             .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 THE AUDACITY\nYou asked for your own achievement. Reward: Mirror of Self-Admiration", "claude-sonnet-4-5", null, null, null));
+            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 THE AUDACITY\nYou asked for your own achievement. Reward: Mirror of Self-Admiration", "claude-sonnet-5", null, null, null));
 
         _mockMessageOutgoing
             .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
@@ -94,7 +97,7 @@ public class AchievementBotUnitTest
 
         _mockAiClient
             .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 BOTTOMLESS PIT\nReward: Antacid of Regret", "claude-sonnet-4-5", null, null, null));
+            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 BOTTOMLESS PIT\nReward: Antacid of Regret", "claude-sonnet-5", null, null, null));
 
         _mockMessageOutgoing
             .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
@@ -127,7 +130,7 @@ public class AchievementBotUnitTest
 
         _mockAiClient
             .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 GHOST TOWN\nReward: Echo of Silence", "claude-sonnet-4-5", null, null, null));
+            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 GHOST TOWN\nReward: Echo of Silence", "claude-sonnet-5", null, null, null));
 
         _mockMessageOutgoing
             .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
@@ -192,5 +195,113 @@ public class AchievementBotUnitTest
         _mockMessageOutgoing.Verify(
             outgoing => outgoing.PostAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
+    }
+
+    [TestMethod]
+    public async Task HandleIncomingText_SuccessfulPost_EnqueuesOneImageRequest()
+    {
+        // Arrange
+        var message = new MessageItem("bot achievement post")
+        {
+            DisplayName = "Sean",
+            GroupId = "test-group",
+            UserId = "7663415",
+            unspecifiedId = "message-1"
+        };
+
+        _mockMessageHistory
+            .Setup(h => h.GetRecentMessagesAsync("test-group", 20))
+            .ReturnsAsync(new List<GroupMeHistoryMessage>());
+
+        const string achievement = "New Achievement!\n🏆 SPEEDRUN OF SHAME\nReward: Boots of Mild Regret";
+
+        _mockAiClient
+            .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AiCompletionResponse(achievement, "claude-sonnet-5", null, null, null));
+
+        _mockMessageOutgoing
+            .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
+            .ReturnsAsync(HttpStatusCode.OK);
+
+        // Act
+        await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
+
+        // Assert
+        _mockImageQueue.Verify(
+            q => q.EnqueueAsync(
+                It.Is<AchievementImageRequest>(r =>
+                    r.UserId == "7663415"
+                    && r.DisplayName == "Sean"
+                    && r.GroupId == "test-group"
+                    && r.MessageId == "message-1"
+                    && r.AchievementText == achievement),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task HandleIncomingText_FailedPost_DoesNotEnqueueImageRequest()
+    {
+        // Arrange
+        var message = new MessageItem("bot achievement post")
+        {
+            DisplayName = "Sean",
+            GroupId = "test-group",
+            UserId = "7663415"
+        };
+
+        _mockMessageHistory
+            .Setup(h => h.GetRecentMessagesAsync("test-group", 20))
+            .ReturnsAsync(new List<GroupMeHistoryMessage>());
+
+        _mockAiClient
+            .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 NOPE", "claude-sonnet-5", null, null, null));
+
+        _mockMessageOutgoing
+            .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
+            .ReturnsAsync(HttpStatusCode.BadRequest);
+
+        // Act
+        await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
+
+        // Assert - no text in the chat means an orphan image would make no sense
+        _mockImageQueue.Verify(
+            q => q.EnqueueAsync(It.IsAny<AchievementImageRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task HandleIncomingText_EnqueueThrows_StillReturnsOk()
+    {
+        // Arrange - a queue outage must not turn a posted achievement into a failure
+        var message = new MessageItem("bot achievement post")
+        {
+            DisplayName = "Sean",
+            GroupId = "test-group",
+            UserId = "7663415"
+        };
+
+        _mockMessageHistory
+            .Setup(h => h.GetRecentMessagesAsync("test-group", 20))
+            .ReturnsAsync(new List<GroupMeHistoryMessage>());
+
+        _mockAiClient
+            .Setup(a => a.GetCompletionAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AiCompletionResponse("New Achievement!\n🏆 QUEUE JUMPER", "claude-sonnet-5", null, null, null));
+
+        _mockMessageOutgoing
+            .Setup(m => m.PostAsync(It.IsAny<string>(), "test-bot-id"))
+            .ReturnsAsync(HttpStatusCode.OK);
+
+        _mockImageQueue
+            .Setup(q => q.EnqueueAsync(It.IsAny<AchievementImageRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("queue unavailable"));
+
+        // Act
+        var result = await _achievementBot.HandleIncomingTextAsync(message, isManualTrigger: true);
+
+        // Assert
+        Assert.AreEqual(HttpStatusCode.OK, result);
     }
 }
